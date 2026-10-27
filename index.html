@@ -1,0 +1,278 @@
+
+
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MineForge Hosting</title>
+<style>
+:root {
+  --bg:#0b0e14; --panel:#131923; --line:#252e3d;
+  --text:#f2f5fa; --muted:#98a5b8; --green:#53e39b;
+  --blue:#7299ff;
+}
+* { box-sizing:border-box }
+body {
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:Arial,Helvetica,sans-serif;
+}
+header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 5%; border-bottom:1px solid var(--line);
+  background:#0e121a; position:sticky; top:0; z-index:5;
+}
+.logo { font-size:21px; font-weight:800; letter-spacing:-.5px }
+.logo span { color:var(--green) }
+.pill { border:1px solid #285e49; color:var(--green);
+  padding:7px 11px; border-radius:20px; font-size:12px }
+.layout { display:flex; min-height:calc(100vh - 65px) }
+nav {
+  width:220px; padding:24px 14px; border-right:1px solid var(--line);
+  flex-shrink:0;
+}
+.navlabel { color:var(--muted); font-size:11px; margin:18px 10px 8px }
+nav button {
+  width:100%; text-align:left; background:transparent; color:#bac5d6;
+  padding:12px; border:0; border-radius:8px; cursor:pointer; margin:2px 0;
+}
+nav button.active, nav button:hover { background:#202a38; color:white }
+main { padding:32px; width:100%; max-width:1200px; margin:auto }
+h1 { margin:0 0 8px; font-size:30px }
+p { color:var(--muted); line-height:1.6 }
+.hero {
+  background:linear-gradient(120deg,#172c29,#172038 65%,#1c1730);
+  border:1px solid #2d4648; border-radius:16px; padding:26px;
+  margin:25px 0;
+}
+.hero h2 { margin:0; font-size:23px }
+.button {
+  background:var(--green); color:#07140e; font-weight:700;
+  border:0; padding:11px 16px; border-radius:8px; cursor:pointer;
+}
+.button.secondary { background:#273244; color:white; border:1px solid #39465a }
+.grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px }
+.card {
+  background:var(--panel); border:1px solid var(--line);
+  padding:20px; border-radius:13px; min-width:0;
+}
+.card h3 { margin:0 0 10px; font-size:16px }
+.big { font-size:25px; font-weight:750; margin:10px 0 }
+.muted { color:var(--muted); font-size:13px }
+.status { color:var(--muted); font-size:12px }
+.dot { display:inline-block; width:7px; height:7px; border-radius:50%;
+  background:#7b8799; margin-right:6px }
+.dot.green { background:var(--green) }
+.section { margin-top:30px }
+.sectionhead { display:flex; justify-content:space-between; gap:12px;
+  align-items:center; margin-bottom:14px }
+.serverrow { display:flex; align-items:center; gap:13px }
+.cube { background:#27382f; padding:13px; border-radius:10px; font-size:22px }
+.serverrow .details { flex:1; min-width:0 }
+.serverrow .details strong { display:block; margin-bottom:6px }
+input, select {
+  width:100%; background:#0d121a; color:white; padding:12px;
+  border:1px solid #303b4d; border-radius:8px; margin:7px 0 14px;
+}
+label { font-size:13px; color:#bdc8d8 }
+.catalog { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px }
+.item { display:flex; align-items:center; gap:12px; padding:15px;
+  background:#0f151e; border:1px solid var(--line); border-radius:10px }
+.item .info { flex:1; min-width:0 }
+.item strong { display:block; margin-bottom:5px }
+.item button { background:#273244; color:white; border:0; border-radius:7px;
+  padding:8px 11px; cursor:pointer }
+.notice { padding:14px; background:#292318; border:1px solid #5a4725;
+  color:#e9cb8d; border-radius:9px; font-size:13px; line-height:1.6 }
+.page { display:none }
+.page.active { display:block }
+footer { color:#69778a; font-size:12px; margin-top:35px; padding-bottom:20px }
+@media(max-width:760px) {
+  .layout { display:block }
+  nav { width:100%; display:flex; overflow-x:auto; padding:8px; border-right:0;
+    border-bottom:1px solid var(--line) }
+  nav button { white-space:nowrap; width:auto }
+  .navlabel { display:none }
+  main { padding:20px 14px }
+  .grid { grid-template-columns:1fr }
+  .catalog { grid-template-columns:1fr }
+  header { padding:16px }
+  h1 { font-size:26px }
+  .hero { padding:20px }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">MINE<span>FORGE</span></div>
+  <div class="pill">● HOSTING DASHBOARD</div>
+</header>
+
+<div class="layout">
+<nav>
+  <button class="active" data-page="overview">⌂ Overview</button>
+  <button data-page="servers">▦ My Servers</button>
+  <button data-page="software">⚙ Software</button>
+  <button data-page="plugins">⬡ Mods & Plugins</button>
+  <button data-page="packs">▧ Resourcepacks</button>
+  <button data-page="settings">☷ Settings</button>
+</nav>
+
+<main>
+<section class="page active" id="overview">
+  <h1>Welcome to MineForge</h1>
+  <p>Your Minecraft world. Your rules. Your server.</p>
+
+  <div class="hero">
+    <h2>Build something legendary.</h2>
+    <p>Manage your Minecraft servers from one simple dashboard.</p>
+    <button class="button" onclick="showPage('servers')">Explore servers →</button>
+  </div>
+
+  <div class="grid">
+    <div class="card"><div class="muted">YOUR SERVERS</div>
+      <div class="big">0</div><div class="status">No real servers connected</div></div>
+    <div class="card"><div class="muted">INSTALLED PLUGINS</div>
+      <div class="big" id="pluginCount">0</div><div class="status">Demo selection only</div></div>
+    <div class="card"><div class="muted">PLATFORM STATUS</div>
+      <div class="big" style="color:var(--green)">Online</div><div class="status">Website interface running</div></div>
+  </div>
+
+  <div class="section">
+    <div class="sectionhead"><h2>Quick actions</h2></div>
+    <div class="grid">
+      <div class="card"><h3>🖥️ Servers</h3><p>View and manage your server list.</p>
+        <button class="button secondary" onclick="showPage('servers')">Open servers</button></div>
+      <div class="card"><h3>🧩 Software</h3><p>Choose a Minecraft server type.</p>
+        <button class="button secondary" onclick="showPage('software')">Explore software</button></div>
+      <div class="card"><h3>🔧 Plugins</h3><p>Explore the plugin manager concept.</p>
+        <button class="button secondary" onclick="showPage('plugins')">Open manager</button></div>
+    </div>
+  </div>
+</section>
+
+<section class="page" id="servers">
+  <h1>My Servers</h1>
+  <p>Your Minecraft servers will appear here.</p>
+  <div class="notice">Demo mode: this website does not start a Minecraft server yet. We will connect a real server backend in a later step.</div>
+  <div class="section card">
+    <h3>Create a server concept</h3>
+    <label for="serverName">Server name</label>
+    <input id="serverName" placeholder="My Survival World">
+    <label for="edition">Minecraft edition</label>
+    <select id="edition"><option>Java Edition</option><option>Bedrock Edition</option><option>Java + Bedrock (later)</option></select>
+    <label for="version">Minecraft version</label>
+    <select id="version"><option>1.21.11</option><option>1.21.10</option><option>1.21.1</option></select>
+    <button class="button" onclick="createServer()">Create demo server</button>
+    <div id="serverResult"></div>
+  </div>
+</section>
+
+<section class="page" id="software">
+  <h1>Server Software</h1>
+  <p>Choose the software we plan to support.</p>
+  <div class="grid">
+    <div class="card"><h3>Vanilla</h3><p>Official Minecraft Java server software.</p><span class="pill">Vanilla</span></div>
+    <div class="card"><h3>Paper</h3><p>Java server software with plugin support.</p><span class="pill">Plugins</span></div>
+    <div class="card"><h3>Fabric</h3><p>A lightweight modding platform for Java.</p><span class="pill">Mods</span></div>
+    <div class="card"><h3>Bedrock</h3><p>Bedrock server support is planned.</p><span class="pill">Planned</span></div>
+  </div>
+  <div class="section notice">These are software options shown in the interface. Nothing is downloaded or installed yet.</div>
+</section>
+
+<section class="page" id="plugins">
+  <h1>Mods & Plugins</h1>
+  <p>Explore our future software manager.</p>
+  <input id="search" placeholder="Search plugins..." oninput="renderCatalog()">
+  <div class="sectionhead">
+    <select id="category" onchange="renderCatalog()" style="max-width:200px">
+      <option value="All">All types</option><option value="Plugin">Plugins</option><option value="Mod">Mods</option><option value="Datapack">Datapacks</option>
+    </select>
+  </div>
+  <div id="catalog" class="catalog"></div>
+  <div class="section notice">Demo catalog: selections are stored only in this page. Installing software requires a secure backend and a compatible server.</div>
+</section>
+
+<section class="page" id="packs">
+  <h1>Resourcepacks</h1>
+  <p>Manage the look and sound of your Minecraft world.</p>
+  <div class="card">
+    <h3>Resourcepack URL</h3>
+    <label for="packUrl">Direct download URL</label>
+    <input id="packUrl" placeholder="https://example.com/pack.zip">
+    <button class="button" onclick="savePack()">Save demo setting</button>
+    <p id="packResult"></p>
+  </div>
+  <div class="section notice">A saved URL here does not upload or apply a pack to a Minecraft server yet.</div>
+</section>
+
+<section class="page" id="settings">
+  <h1>Settings</h1>
+  <p>Basic MineForge preferences.</p>
+  <div class="card">
+    <h3>Platform</h3>
+    <p>Project name: MineForge Hosting</p>
+    <p>Mode: Frontend prototype</p>
+    <p>Hosting: GitHub Pages</p>
+    <p>Backend: Not connected</p>
+  </div>
+</section>
+
+<footer>MineForge Hosting · Independent community project · Not affiliated with Mojang or Microsoft.</footer>
+</main>
+</div>
+
+<script>
+const catalogItems = [
+  {name:"EssentialsX",type:"Plugin",desc:"Common commands for Paper servers."},
+  {name:"WorldEdit",type:"Plugin",desc:"Tools for building and editing worlds."},
+  {name:"LuckPerms",type:"Plugin",desc:"Permissions and player groups."},
+  {name:"Geyser",type:"Plugin",desc:"Connect Bedrock players to compatible Java servers."},
+  {name:"Fabric API",type:"Mod",desc:"A library required by many Fabric mods."},
+  {name:"Sodium",type:"Mod",desc:"Client-side rendering performance mod."},
+  {name:"Player Sleep",type:"Datapack",desc:"Custom sleeping rules for a world."},
+  {name:"Custom Recipes",type:"Datapack",desc:"Create additional crafting recipes."}
+];
+let selected = [];
+
+function showPage(id) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("active", b.dataset.page === id));
+  document.getElementById(id).classList.add("active");
+}
+document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => showPage(b.dataset.page)));
+
+function renderCatalog() {
+  const q = document.getElementById("search").value.toLowerCase();
+  const cat = document.getElementById("category").value;
+  const list = catalogItems.filter(x => x.name.toLowerCase().includes(q) && (cat === "All" || x.type === cat));
+  document.getElementById("catalog").innerHTML = list.map(x => `
+    <div class="item">
+      <div class="info"><strong>${x.name}</strong><div class="muted">${x.type} · ${x.desc}</div></div>
+      <button onclick="toggleItem('${x.name.replace(/'/g,"")}')">${selected.includes(x.name) ? "Remove" : "Select"}</button>
+    </div>`).join("") || "<p>No results found.</p>";
+}
+function toggleItem(name) {
+  selected = selected.includes(name) ? selected.filter(x => x !== name) : [...selected, name];
+  document.getElementById("pluginCount").textContent = selected.length;
+  renderCatalog();
+}
+function createServer() {
+  const name = document.getElementById("serverName").value.trim();
+  const edition = document.getElementById("edition").value;
+  const version = document.getElementById("version").value;
+  document.getElementById("serverResult").innerHTML = name
+    ? `<p>Demo server "${name.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}" configured for ${edition}, version ${version}. No server has been started.</p>`
+    : "<p>Please enter a server name first.</p>";
+}
+function savePack() {
+  const url = document.getElementById("packUrl").value.trim();
+  document.getElementById("packResult").textContent = url
+    ? "Demo setting saved for this page only."
+    : "Enter a URL first.";
+}
+renderCatalog();
+</script>
+</body>
+</html>
+
