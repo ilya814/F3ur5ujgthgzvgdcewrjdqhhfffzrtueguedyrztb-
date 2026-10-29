@@ -166,6 +166,11 @@ footer { color:#69778a; font-size:12px; margin-top:35px; padding-bottom:20px }
     <button class="button" onclick="createServer()">Create demo server</button>
     <div id="serverResult"></div>
   </div>
+  <div class="section card">
+    <div class="sectionhead"><h3>Saved test servers</h3><button class="button secondary" onclick="loadServers()">Refresh</button></div>
+    <p class="muted">These are demo configurations stored temporarily by the online test API.</p>
+    <div id="serverList"><p class="muted">Connect the backend in Settings to load your test servers.</p></div>
+  </div>
 </section>
 
 <section class="page" id="software">
@@ -210,11 +215,20 @@ footer { color:#69778a; font-size:12px; margin-top:35px; padding-bottom:20px }
   <h1>Settings</h1>
   <p>Basic MineForge preferences.</p>
   <div class="card">
+    <h3>Online test backend</h3>
+    <p>Paste the public URL Render gave you. Do not add /health or /api/status at the end.</p>
+    <label for="backendUrl">Render URL</label>
+    <input id="backendUrl" placeholder="https://your-service.onrender.com">
+    <button class="button" onclick="saveBackend()">Connect and test</button>
+    <p id="backendResult" role="status">Backend not configured in this browser.</p>
+    <p class="muted">This connects only to the temporary test API. It does not start real Minecraft servers.</p>
+  </div>
+  <div class="card section">
     <h3>Platform</h3>
     <p>Project name: MineForge Hosting</p>
-    <p>Mode: Frontend prototype</p>
-    <p>Hosting: GitHub Pages</p>
-    <p>Backend: Not connected</p>
+    <p>Mode: Online test backend</p>
+    <p>Website: GitHub Pages</p>
+    <p>Backend: <span id="backendState">Not connected</span></p>
   </div>
 </section>
 
@@ -257,14 +271,125 @@ function toggleItem(name) {
   document.getElementById("pluginCount").textContent = selected.length;
   renderCatalog();
 }
-function createServer() {
-  const name = document.getElementById("serverName").value.trim();
-  const edition = document.getElementById("edition").value;
-  const version = document.getElementById("version").value;
-  document.getElementById("serverResult").innerHTML = name
-    ? `<p>Demo server "${name.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}" configured for ${edition}, version ${version}. No server has been started.</p>`
-    : "<p>Please enter a server name first.</p>";
+const BACKEND_KEY = "mineforge_test_backend_url";
+function backendUrl() {
+  return (localStorage.getItem(BACKEND_KEY) || "").trim().replace(/\/+$/, "");
 }
+async function saveBackend() {
+  const input = document.getElementById("backendUrl");
+  const result = document.getElementById("backendResult");
+  const state = document.getElementById("backendState");
+  const value = input.value.trim().replace(/\/+$/, "");
+  if (!/^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(value)) {
+    result.textContent = "Vul de volledige HTTPS-URL van Render in, bijvoorbeeld https://naam.onrender.com.";
+    state.textContent = "Not connected";
+    return;
+  }
+  result.textContent = "Backend testen…";
+  try {
+    const response = await fetch(value + "/health");
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    const data = await response.json();
+    if (data.ok !== true || data.service !== "mineforge-test-backend") throw new Error("Dit lijkt niet de MineForge-testbackend.");
+    localStorage.setItem(BACKEND_KEY, value);
+    result.textContent = "Verbonden! De online testbackend reageert.";
+    state.textContent = "Connected (demo only)";
+    await loadServers();
+  } catch (error) {
+    result.textContent = "Verbinding mislukt: " + error.message + ". Controleer de URL en probeer opnieuw.";
+    state.textContent = "Connection failed";
+  }
+}
+async function loadServers() {
+  const target = document.getElementById("serverList");
+  const base = backendUrl();
+  if (!base) {
+    target.textContent = "Ga naar Settings en verbind de Render-backend.";
+    return;
+  }
+  try {
+    const response = await fetch(base + "/api/servers");
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || ("HTTP " + response.status));
+    target.replaceChildren();
+    if (!data.servers || data.servers.length === 0) {
+      const p = document.createElement("p");
+      p.className = "muted";
+      p.textContent = "Nog geen testservers. Maak hierboven je eerste demo-server.";
+      target.appendChild(p);
+      return;
+    }
+    data.servers.forEach(server => {
+      const card = document.createElement("div");
+      card.className = "item";
+      const info = document.createElement("div");
+      info.className = "info";
+      const strong = document.createElement("strong");
+      strong.textContent = server.name;
+      const detail = document.createElement("div");
+      detail.className = "muted";
+      detail.textContent = server.edition + " · " + server.software + " · " + server.status;
+      info.append(strong, detail);
+      const actions = document.createElement("div");
+      actions.style.display = "flex";
+      actions.style.gap = "6px";
+      ["start", "stop"].forEach(action => {
+        const button = document.createElement("button");
+        button.textContent = action === "start" ? "Simulate start" : "Stop";
+        button.addEventListener("click", () => changeDemoStatus(server.id, action));
+        actions.appendChild(button);
+      });
+      card.append(info, actions);
+      target.appendChild(card);
+    });
+  } catch (error) {
+    target.textContent = "Kon testservers niet laden: " + error.message;
+  }
+}
+async function changeDemoStatus(id, action) {
+  const base = backendUrl();
+  try {
+    const response = await fetch(base + "/api/servers/" + encodeURIComponent(id) + "/" + action, { method: "POST" });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || ("HTTP " + response.status));
+    await loadServers();
+  } catch (error) {
+    document.getElementById("serverResult").textContent = "Actie mislukt: " + error.message;
+  }
+}
+async function createServer() {
+  const name = document.getElementById("serverName").value.trim();
+  const editionChoice = document.getElementById("edition").value;
+  const version = document.getElementById("version").value;
+  const result = document.getElementById("serverResult");
+  if (!name) { result.textContent = "Vul eerst een servernaam in."; return; }
+  const base = backendUrl();
+  if (!base) {
+    result.textContent = "Verbind eerst de online testbackend via Settings. Er is nog geen server aangemaakt.";
+    return;
+  }
+  const edition = editionChoice.startsWith("Bedrock") ? "Bedrock" : "Java";
+  const software = edition === "Bedrock" ? "Bedrock" : "Paper";
+  result.textContent = "Demo-configuratie aanmaken…";
+  try {
+    const response = await fetch(base + "/api/servers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, edition, software })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || ("HTTP " + response.status));
+    result.textContent = data.message + " Gekozen Minecraft-versie: " + version + ".";
+    await loadServers();
+  } catch (error) {
+    result.textContent = "Aanmaken mislukt: " + error.message;
+  }
+}
+window.addEventListener("DOMContentLoaded", () => {
+  const input = document.getElementById("backendUrl");
+  if (input) input.value = backendUrl();
+  if (backendUrl()) saveBackend();
+});
 function savePack() {
   const url = document.getElementById("packUrl").value.trim();
   document.getElementById("packResult").textContent = url
