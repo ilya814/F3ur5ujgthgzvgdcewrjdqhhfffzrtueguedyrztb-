@@ -163,6 +163,8 @@ footer { color:#69778a; font-size:12px; margin-top:35px; padding-bottom:20px }
     <select id="edition"><option>Java Edition</option><option>Bedrock Edition</option><option>Java + Bedrock (later)</option></select>
     <label for="version">Minecraft version</label>
     <select id="version"><option>1.21.11</option><option>1.21.10</option><option>1.21.1</option></select>
+    <label for="software">Server software</label>
+    <select id="software"><option value="Paper" selected>Paper (plugins)</option><option value="Vanilla">Vanilla</option><option value="Fabric">Fabric (mods)</option><option value="Forge">Forge (mods)</option><option value="Bedrock">Bedrock Dedicated Server</option></select>
     <label for="maxPlayers">Maximum players (1–100)</label>
     <input id="maxPlayers" type="number" min="1" max="100" value="20">
     <label for="gamemode">Gamemode</label>
@@ -385,7 +387,15 @@ async function createServer() {
     return;
   }
   const edition = editionChoice.startsWith("Bedrock") ? "Bedrock" : "Java";
-  const software = edition === "Bedrock" ? "Bedrock" : "Paper";
+  const software = document.getElementById("software").value;
+  if (edition === "Bedrock" && software !== "Bedrock") {
+    result.textContent = "Voor Bedrock Edition moet je Bedrock Dedicated Server kiezen.";
+    return;
+  }
+  if (edition === "Java" && software === "Bedrock") {
+    result.textContent = "Bedrock Dedicated Server werkt alleen met Bedrock Edition.";
+    return;
+  }
   result.textContent = "Demo-configuratie aanmaken…";
   try {
     const response = await fetch(base + "/api/servers", {
@@ -395,7 +405,7 @@ async function createServer() {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || ("HTTP " + response.status));
-    result.textContent = data.message + " Instellingen opgeslagen: " + version + ", " + maxPlayers + " spelers, " + gamemode + ", " + difficulty + ".";
+    result.textContent = data.message + " Instellingen opgeslagen: " + software + ", " + version + ", " + maxPlayers + " spelers, " + gamemode + ", " + difficulty + ".";
     await loadServers();
   } catch (error) {
     result.textContent = "Aanmaken mislukt: " + error.message;
