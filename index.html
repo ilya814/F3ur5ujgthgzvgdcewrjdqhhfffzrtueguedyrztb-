@@ -163,6 +163,14 @@ footer { color:#69778a; font-size:12px; margin-top:35px; padding-bottom:20px }
     <select id="edition"><option>Java Edition</option><option>Bedrock Edition</option><option>Java + Bedrock (later)</option></select>
     <label for="version">Minecraft version</label>
     <select id="version"><option>1.21.11</option><option>1.21.10</option><option>1.21.1</option></select>
+    <label for="maxPlayers">Maximum players (1–100)</label>
+    <input id="maxPlayers" type="number" min="1" max="100" value="20">
+    <label for="gamemode">Gamemode</label>
+    <select id="gamemode"><option value="survival">Survival</option><option value="creative">Creative</option><option value="adventure">Adventure</option></select>
+    <label for="difficulty">Difficulty</label>
+    <select id="difficulty"><option value="peaceful">Peaceful</option><option value="easy">Easy</option><option value="normal" selected>Normal</option><option value="hard">Hard</option></select>
+    <label for="motd">Server description (MOTD)</label>
+    <input id="motd" maxlength="100" value="Welcome to MineForge!" placeholder="Welcome to my server">
     <button class="button" onclick="createServer()">Create demo server</button>
     <div id="serverResult"></div>
   </div>
@@ -328,8 +336,11 @@ async function loadServers() {
       strong.textContent = server.name;
       const detail = document.createElement("div");
       detail.className = "muted";
-      detail.textContent = server.edition + " · " + server.software + " · " + server.status;
-      info.append(strong, detail);
+      detail.textContent = server.edition + " · " + server.software + " · " + (server.minecraftVersion || "1.21.11") + " · " + server.maxPlayers + " players · " + server.gamemode + " · " + server.difficulty + " · " + server.status;
+      const extra = document.createElement("div");
+      extra.className = "muted";
+      extra.textContent = "MOTD: " + (server.motd || "Welcome to MineForge!");
+      info.append(strong, detail, extra);
       const actions = document.createElement("div");
       actions.style.display = "flex";
       actions.style.gap = "6px";
@@ -361,8 +372,13 @@ async function createServer() {
   const name = document.getElementById("serverName").value.trim();
   const editionChoice = document.getElementById("edition").value;
   const version = document.getElementById("version").value;
+  const maxPlayers = Number(document.getElementById("maxPlayers").value);
+  const gamemode = document.getElementById("gamemode").value;
+  const difficulty = document.getElementById("difficulty").value;
+  const motd = document.getElementById("motd").value.trim();
   const result = document.getElementById("serverResult");
   if (!name) { result.textContent = "Vul eerst een servernaam in."; return; }
+  if (!Number.isInteger(maxPlayers) || maxPlayers < 1 || maxPlayers > 100) { result.textContent = "Kies een aantal spelers tussen 1 en 100."; return; }
   const base = backendUrl();
   if (!base) {
     result.textContent = "Verbind eerst de online testbackend via Settings. Er is nog geen server aangemaakt.";
@@ -375,11 +391,11 @@ async function createServer() {
     const response = await fetch(base + "/api/servers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, edition, software })
+      body: JSON.stringify({ name, edition, software, minecraftVersion: version, maxPlayers, gamemode, difficulty, motd })
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || ("HTTP " + response.status));
-    result.textContent = data.message + " Gekozen Minecraft-versie: " + version + ".";
+    result.textContent = data.message + " Instellingen opgeslagen: " + version + ", " + maxPlayers + " spelers, " + gamemode + ", " + difficulty + ".";
     await loadServers();
   } catch (error) {
     result.textContent = "Aanmaken mislukt: " + error.message;
