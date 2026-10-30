@@ -144,7 +144,7 @@ app.post("/api/servers", async (req, res) => {
   if (!name) return res.status(400).json({ error: "Vul een servernaam in." });
   if (!["Java", "Bedrock"].includes(edition)) return res.status(400).json({ error: "Edition moet Java of Bedrock zijn." });
   if (!["Vanilla", "Paper", "Fabric", "Forge", "Bedrock"].includes(software)) return res.status(400).json({ error: "Onbekende demo-software." });
-  if (!/^1\\.\\d+(?:\\.\\d+)?$/.test(minecraftVersion)) return res.status(400).json({ error: "Ongeldige Minecraft-versie." });
+  if (!/^1\.\d+(?:\.\d+)?$/.test(minecraftVersion)) return res.status(400).json({ error: "Ongeldige Minecraft-versie." });
   if (!Number.isInteger(maxPlayers) || maxPlayers < 1 || maxPlayers > 100) return res.status(400).json({ error: "Max players moet tussen 1 en 100 liggen." });
   if (!["survival", "creative", "adventure"].includes(gamemode)) return res.status(400).json({ error: "Ongeldige gamemode." });
   if (!["peaceful", "easy", "normal", "hard"].includes(difficulty)) return res.status(400).json({ error: "Ongeldige difficulty." });
