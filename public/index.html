@@ -197,15 +197,20 @@ footer { color:#69778a; font-size:12px; margin-top:35px; padding-bottom:20px }
 
 <section class="page" id="plugins">
   <h1>Mods & Plugins</h1>
-  <p>Explore our future software manager.</p>
-  <input id="search" placeholder="Search plugins..." oninput="renderCatalog()">
+  <p>Select a saved server to see compatible mods, plugins and datapacks.</p>
+  <label for="pluginServer">Choose your server</label>
+  <select id="pluginServer" onchange="renderCatalog()" style="max-width:420px;width:100%;margin:8px 0 14px">
+    <option value="">Loading your servers...</option>
+  </select>
+  <div id="pluginServerInfo" class="muted">Choose a server to view compatible items.</div>
+  <input id="search" placeholder="Search..." oninput="renderCatalog()">
   <div class="sectionhead">
     <select id="category" onchange="renderCatalog()" style="max-width:200px">
       <option value="All">All types</option><option value="Plugin">Plugins</option><option value="Mod">Mods</option><option value="Datapack">Datapacks</option>
     </select>
   </div>
-  <div id="catalog" class="catalog"></div>
-  <div class="section notice">Demo catalog: selections are stored only in this page. Installing software requires a secure backend and a compatible server.</div>
+  <div id="catalog" class="catalog"><p class="muted">Choose a server first.</p></div>
+  <div class="section notice">Demo catalog: selections are stored only in this page. Installing items is not available yet.</div>
 </section>
 
 <section class="page" id="packs">
@@ -248,14 +253,15 @@ footer { color:#69778a; font-size:12px; margin-top:35px; padding-bottom:20px }
 
 <script>
 const catalogItems = [
-  {name:"EssentialsX",type:"Plugin",desc:"Common commands for Paper servers."},
-  {name:"WorldEdit",type:"Plugin",desc:"Tools for building and editing worlds."},
-  {name:"LuckPerms",type:"Plugin",desc:"Permissions and player groups."},
-  {name:"Geyser",type:"Plugin",desc:"Connect Bedrock players to compatible Java servers."},
-  {name:"Fabric API",type:"Mod",desc:"A library required by many Fabric mods."},
-  {name:"Sodium",type:"Mod",desc:"Client-side rendering performance mod."},
-  {name:"Player Sleep",type:"Datapack",desc:"Custom sleeping rules for a world."},
-  {name:"Custom Recipes",type:"Datapack",desc:"Create additional crafting recipes."}
+  {name:"EssentialsX",type:"Plugin",software:["Paper"],desc:"Common commands for Paper servers."},
+  {name:"WorldEdit",type:"Plugin",software:["Paper","Fabric","Forge"],desc:"Tools for building and editing worlds."},
+  {name:"LuckPerms",type:"Plugin",software:["Paper"],desc:"Permissions and player groups."},
+  {name:"Geyser",type:"Plugin",software:["Paper"],desc:"Connect Bedrock players to compatible Java servers."},
+  {name:"Fabric API",type:"Mod",software:["Fabric"],desc:"A library required by many Fabric mods."},
+  {name:"Sodium",type:"Mod",software:["Fabric"],desc:"Client-side rendering performance mod."},
+  {name:"Forge",type:"Mod",software:["Forge"],desc:"A modding platform library for Forge servers."},
+  {name:"Player Sleep",type:"Datapack",software:["Vanilla","Paper","Fabric","Forge"],desc:"Custom sleeping rules for a world."},
+  {name:"Custom Recipes",type:"Datapack",software:["Vanilla","Paper","Fabric","Forge"],desc:"Create additional crafting recipes."}
 ];
 let selected = [];
 
@@ -263,18 +269,64 @@ function showPage(id) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   document.querySelectorAll("nav button").forEach(b => b.classList.toggle("active", b.dataset.page === id));
   document.getElementById(id).classList.add("active");
+  if (id === "plugins") loadPluginServers();
 }
 document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => showPage(b.dataset.page)));
 
+async function loadPluginServers() {
+  const select = document.getElementById("pluginServer");
+  const base = backendUrl();
+  if (!base) {
+    select.innerHTML = '<option value="">Connect your backend in Settings first</option>';
+    renderCatalog();
+    return;
+  }
+  try {
+    const response = await fetch(base + "/api/servers");
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || ("HTTP " + response.status));
+    const servers = data.servers || [];
+    window.pluginServersCache = servers;
+    const previous = select.value;
+    select.replaceChildren();
+    if (!servers.length) {
+      select.add(new Option("No saved servers yet", ""));
+      renderCatalog();
+      return;
+    }
+    select.add(new Option("Choose a server...", ""));
+    servers.forEach(server => select.add(new Option(server.name + " · " + server.software, server.id)));
+    if (servers.some(server => server.id === previous)) select.value = previous;
+    renderCatalog();
+  } catch (error) {
+    select.innerHTML = '<option value="">Could not load servers</option>';
+    document.getElementById("pluginServerInfo").textContent = error.message;
+    renderCatalog();
+  }
+}
 function renderCatalog() {
+  const select = document.getElementById("pluginServer");
+  const server = window.pluginServersCache && window.pluginServersCache.find(x => x.id === select.value);
   const q = document.getElementById("search").value.toLowerCase();
   const cat = document.getElementById("category").value;
-  const list = catalogItems.filter(x => x.name.toLowerCase().includes(q) && (cat === "All" || x.type === cat));
+  const info = document.getElementById("pluginServerInfo");
+  if (!select.value) {
+    info.textContent = "Choose a server to view compatible items.";
+    document.getElementById("catalog").innerHTML = '<p class="muted">Select one of your saved servers first.</p>';
+    return;
+  }
+  if (!server) {
+    info.textContent = "Server details are not available. Refresh the page or reconnect the backend.";
+    document.getElementById("catalog").innerHTML = '<p class="muted">Could not find that server.</p>';
+    return;
+  }
+  info.textContent = server.edition + " · " + server.software + " · Compatible items only";
+  const list = catalogItems.filter(x => x.name.toLowerCase().includes(q) && (cat === "All" || x.type === cat) && x.software.includes(server.software));
   document.getElementById("catalog").innerHTML = list.map(x => `
     <div class="item">
       <div class="info"><strong>${x.name}</strong><div class="muted">${x.type} · ${x.desc}</div></div>
       <button onclick="toggleItem('${x.name.replace(/'/g,"")}')">${selected.includes(x.name) ? "Remove" : "Select"}</button>
-    </div>`).join("") || "<p>No results found.</p>";
+    </div>`).join("") || '<p class="muted">No compatible items found for this server and filter.</p>';
 }
 function toggleItem(name) {
   selected = selected.includes(name) ? selected.filter(x => x !== name) : [...selected, name];
