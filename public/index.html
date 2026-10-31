@@ -239,6 +239,27 @@ footer { color:#69778a; font-size:12px; margin-top:35px; padding-bottom:20px }
     <p class="muted">This connects only to the temporary test API. It does not start real Minecraft servers.</p>
   </div>
   <div class="card section">
+    <h3>MineForge account</h3>
+    <p>Maak een account of log in. Gebruik hiervoor je Supabase Project URL en Publishable key.</p>
+    <label for="supabaseUrl">Supabase Project URL</label>
+    <input id="supabaseUrl" placeholder="https:// jouw-project.supabase.co" autocomplete="url">
+    <label for="supabaseKey">Supabase Publishable key</label>
+    <input id="supabaseKey" placeholder="sb_publishable_..." autocomplete="off">
+    <button class="button secondary" onclick="saveSupabaseConfig()">Save Supabase settings</button>
+    <hr style="border-color:var(--line);margin:18px 0">
+    <label for="authEmail">Email</label>
+    <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">
+    <label for="authPassword">Password</label>
+    <input id="authPassword" type="password" placeholder="At least 6 characters" autocomplete="current-password">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button class="button" onclick="signInMineForge()">Log in</button>
+      <button class="button secondary" onclick="signUpMineForge()">Create account</button>
+      <button class="button secondary" onclick="signOutMineForge()">Log out</button>
+    </div>
+    <p id="authResult" role="status">Not signed in.</p>
+    <p class="muted">The Publishable key is intended for browser use. Never enter your Supabase secret or service_role key here.</p>
+  </div>
+  <div class="card section">
     <h3>Platform</h3>
     <p>Project name: MineForge Hosting</p>
     <p>Mode: Online test backend</p>
@@ -332,6 +353,87 @@ function toggleItem(name) {
   selected = selected.includes(name) ? selected.filter(x => x !== name) : [...selected, name];
   document.getElementById("pluginCount").textContent = selected.length;
   renderCatalog();
+}
+const SUPABASE_URL_KEY = "mineforge_supabase_url";
+const SUPABASE_PUBLIC_KEY = "mineforge_supabase_publishable_key";
+const SUPABASE_SESSION_KEY = "mineforge_supabase_session";
+function supabaseConfig() {
+  return {
+    url: (localStorage.getItem(SUPABASE_URL_KEY) || "").replace(/\/$/, ""),
+    key: localStorage.getItem(SUPABASE_PUBLIC_KEY) || ""
+  };
+}
+function saveSupabaseConfig() {
+  const url = document.getElementById("supabaseUrl").value.trim().replace(/\/$/, "");
+  const key = document.getElementById("supabaseKey").value.trim();
+  const result = document.getElementById("authResult");
+  if (!/^https:\/\/[a-z0-9.-]+$/i.test(url) || !key) {
+    result.textContent = "Vul een geldige Supabase Project URL en Publishable key in.";
+    return;
+  }
+  localStorage.setItem(SUPABASE_URL_KEY, url);
+  localStorage.setItem(SUPABASE_PUBLIC_KEY, key);
+  result.textContent = "Supabase-instellingen opgeslagen in deze browser.";
+}
+function getSupabaseSession() {
+  try { return JSON.parse(localStorage.getItem(SUPABASE_SESSION_KEY) || "null"); }
+  catch { return null; }
+}
+async function supabaseAuth(path, body, token) {
+  const cfg = supabaseConfig();
+  if (!cfg.url || !cfg.key) throw new Error("Sla eerst je Supabase URL en Publishable key op in Settings.");
+  const response = await fetch(cfg.url + "/auth/v1/" + path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "apikey": cfg.key, ...(token ? { "Authorization": "Bearer " + token } : {}) },
+    body: JSON.stringify(body || {})
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.msg || data.message || data.error_description || data.error || "Supabase authentication failed.");
+  return data;
+}
+async function signUpMineForge() {
+  const result = document.getElementById("authResult");
+  try {
+    const email = document.getElementById("authEmail").value.trim();
+    const password = document.getElementById("authPassword").value;
+    if (!email || password.length < 6) throw new Error("Vul een e-mailadres en een wachtwoord van minstens 6 tekens in.");
+    const data = await supabaseAuth("signup", { email, password });
+    if (data.access_token) {
+      localStorage.setItem(SUPABASE_SESSION_KEY, JSON.stringify(data));
+      result.textContent = "Account aangemaakt en ingelogd als " + (data.user?.email || email) + ".";
+    } else {
+      result.textContent = "Account aangemaakt. Controleer je e-mail om je account te bevestigen en log daarna in.";
+    }
+  } catch (error) { result.textContent = "Registratie mislukt: " + error.message; }
+}
+async function signInMineForge() {
+  const result = document.getElementById("authResult");
+  try {
+    const email = document.getElementById("authEmail").value.trim();
+    const password = document.getElementById("authPassword").value;
+    const data = await supabaseAuth("token?grant_type=password", { email, password });
+    localStorage.setItem(SUPABASE_SESSION_KEY, JSON.stringify(data));
+    result.textContent = "Ingelogd als " + (data.user?.email || email) + ".";
+  } catch (error) { result.textContent = "Inloggen mislukt: " + error.message; }
+}
+async function signOutMineForge() {
+  const result = document.getElementById("authResult");
+  try {
+    const session = getSupabaseSession();
+    if (session?.access_token) await supabaseAuth("logout", {}, session.access_token);
+    localStorage.removeItem(SUPABASE_SESSION_KEY);
+    result.textContent = "Je bent uitgelogd.";
+  } catch (error) { result.textContent = "Uitloggen mislukt: " + error.message; }
+}
+function restoreSupabaseSettings() {
+  const cfg = supabaseConfig();
+  const url = document.getElementById("supabaseUrl");
+  const key = document.getElementById("supabaseKey");
+  if (url) url.value = cfg.url;
+  if (key) key.value = cfg.key;
+  const session = getSupabaseSession();
+  const result = document.getElementById("authResult");
+  if (session?.user?.email && result) result.textContent = "Signed in as " + session.user.email + ".";
 }
 const BACKEND_KEY = "mineforge_test_backend_url";
 function backendUrl() {
@@ -474,6 +576,7 @@ function savePack() {
     ? "Demo setting saved for this page only."
     : "Enter a URL first.";
 }
+restoreSupabaseSettings();
 renderCatalog();
 </script>
 </body>
